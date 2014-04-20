@@ -10,7 +10,6 @@ use DaZeus;
 use Data::Dumper;
 use v5.10;
 
-
 my ($socket) = @ARGV;
 
 if (!$socket) {
@@ -37,13 +36,7 @@ $dazeus->subscribe("PRIVMSG" => sub {
 	}
 
 	my $factoid = getFactoid($1, $sender, $channel);
-
-	# Send it in the appropriate manner.
-	if ($channel eq $dazeus->getNick($network)) {
-		$dazeus->message($network, $sender, $factoid);
-	} else {
-		$dazeus->message($network, $channel, $factoid);
-	}
+	reply($factoid, $network, $sender, $channel);
 });
 
 # Learning, replying or forwarding factoids.
@@ -98,12 +91,7 @@ sub parseLearnCommand {
 		}
 	}
 
-	# Send it in the appropriate manner.
-	if ($channel eq $dazeus->getNick($network)) {
-		$dazeus->message($network, $sender, $response);
-	} else {
-		$dazeus->message($network, $channel, $response);
-	}
+	reply($response, $network, $sender, $channel);
 }
 
 # Forgetting factoids
@@ -124,12 +112,7 @@ $dazeus->subscribe_command("forget" => sub {
 		}
 	}
 
-	# Send it in the appropriate manner.
-	if ($channel eq $dazeus->getNick($network)) {
-		$dazeus->message($network, $sender, $response);
-	} else {
-		$dazeus->message($network, $channel, $response);
-	}
+	reply($response, $network, $sender, $channel);
 });
 
 # Blocking a factoid.
@@ -148,12 +131,7 @@ $dazeus->subscribe_command("block" => sub {
 		}
 	}
 
-	# Send it in the appropriate manner.
-	if ($channel eq $dazeus->getNick($network)) {
-		$dazeus->message($network, $sender, $response);
-	} else {
-		$dazeus->message($network, $channel, $response);
-	}
+	reply($response, $network, $sender, $channel);
 });
 
 # Unblocking a factoid.
@@ -172,12 +150,7 @@ $dazeus->subscribe_command("unblock" => sub {
 		}
 	}
 
-	# Send it in the appropriate manner.
-	if ($channel eq $dazeus->getNick($network)) {
-		$dazeus->message($network, $sender, $response);
-	} else {
-		$dazeus->message($network, $channel, $response);
-	}
+	reply($response, $network, $sender, $channel);
 });
 
 # Statistics! Everyone's favourite biatch.
@@ -185,12 +158,7 @@ $dazeus->subscribe_command("factoidstats" => sub {
 	my ($self, $network, $sender, $channel, $command, undef) = @_;
 	my $response = "I know " . countFactoids() . " factoids.";
 
-	# Send it in the appropriate manner.
-	if ($channel eq $dazeus->getNick($network)) {
-		$dazeus->message($network, $sender, $response);
-	} else {
-		$dazeus->message($network, $channel, $response);
-	}
+	reply($response, $network, $sender, $channel);
 });
 
 # Who dunnit?
@@ -204,12 +172,7 @@ $dazeus->subscribe_command("blame" => sub {
 		$response = blameFactoid($arg);
 	}
 
-	# Send it in the appropriate manner.
-	if ($channel eq $dazeus->getNick($network)) {
-		$dazeus->message($network, $sender, $response);
-	} else {
-		$dazeus->message($network, $channel, $response);
-	}
+	reply($response, $network, $sender, $channel);
 });
 
 # Search for factoids.
@@ -232,12 +195,7 @@ $dazeus->subscribe_command("search" => sub {
 		}
 	}
 
-	# Send it in the appropriate manner.
-	if ($channel eq $dazeus->getNick($network)) {
-		$dazeus->message($network, $sender, $response);
-	} else {
-		$dazeus->message($network, $channel, $response);
-	}
+	reply($response, $network, $sender, $channel);
 });
 
 while($dazeus->handleEvents()) {}
@@ -246,6 +204,15 @@ while($dazeus->handleEvents()) {}
 #                          MODEL FUNCTIONS
 #####################################################################
 
+sub reply {
+	my ($response, $network, $sender, $channel) = @_;
+
+	if ($channel eq $dazeus->getNick($network)) {
+		$dazeus->message($network, $sender, $response);
+	} else {
+		$dazeus->message($network, $channel, $response);
+	}
+}
 
 sub getFactoid {
 	my ($factoid, $sender, $channel, $mode, @forwards) = @_;
