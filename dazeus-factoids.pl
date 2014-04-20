@@ -283,11 +283,11 @@ sub teachFactoid {
 
 	# Check whether we already know this one.
 	if (defined($dazeus->getProperty("factoid_" . lc($factoid)))) {
-		print "DazFactoids: $who tried to teach me $factoid in $channel, but I already know it.\n";
+		print "DazFactoids: $who tried to teach me '$factoid' in $channel, but I already know it.\n";
 		return 1;
 	}
 
-	print "DazFactoids: $who taught me $factoid in $channel with this value and opts:\n$value\n";
+	print "DazFactoids: $who taught me '$factoid' in $channel with this value and opts:\n$value\n";
 	print "-----\n" . Dumper(%opts) . "\n-----\n";
 
 	# Let's learn it already!
@@ -301,17 +301,17 @@ sub forgetFactoid {
 
 	# Is this a factoid known at all?
 	if (!defined($value)) {
-		print "DazFactoids: $who tried to make me forget $factoid in $channel, but I don't know that factoid.\n";
+		print "DazFactoids: $who tried to make me forget '$factoid' in $channel, but I don't know that factoid.\n";
 		return 1;
 	}
 
 	# Blocked, perhaps?
 	if (defined($value->{block})) {
-		print "DazFactoids: $who tried to make me forget $factoid in $channel, but it is blocked.\n";
+		print "DazFactoids: $who tried to make me forget '$factoid' in $channel, but it is blocked.\n";
 		return 2;
 	}
 
-	print "DazFactoids: $who made me forget $factoid in $channel - factoid had this value:\n";
+	print "DazFactoids: $who made me forget '$factoid' in $channel - factoid had this value:\n";
 	print "'" . $value->{value} . "'\n";
 
 	# Let's forget about it already!
