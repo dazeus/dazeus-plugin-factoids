@@ -233,7 +233,7 @@ sub getFactoid {
 	# Traverse forwards if necessary.
 	if ($value->{forward}) {
 		if ($fact ~~ @forwards) {
-			return "[ERROR] Factoid deeplink detected";
+			return "Error: infinite forwarding detected. Trace: " . join(' -> ', @forwards) . ' -> ' . $fact;
 		} else {
 			return getFactoid($fact, $sender, $channel, $mode, @forwards);
 		}
