@@ -235,7 +235,7 @@ sub getFactoid {
 		if ($fact ~~ @forwards) {
 			return "[ERROR] Factoid deeplink detected";
 		} else {
-			return getFactoid($factoid, $sender, $channel, $mode, @forwards);
+			return getFactoid($fact, $sender, $channel, $mode, @forwards);
 		}
 	}
 
