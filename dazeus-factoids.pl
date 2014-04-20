@@ -165,12 +165,34 @@ $dazeus->subscribe_command("unblock" => sub {
 	reply($response, $network, $sender, $channel);
 });
 
-# Statistics! Everyone's favourite biatch.
-$dazeus->subscribe_command("factoidstats" => sub {
-	my ($self, $network, $sender, $channel, $command, undef) = @_;
-	my $response = "I know " . countFactoids() . " factoids.";
+# Getting information on a factoid.
+$dazeus->subscribe_command("factoid" => sub {
+	my ($self, $network, $sender, $channel, $command, $arg) = @_;
 
-	reply($response, $network, $sender, $channel);
+	if (!defined($arg) || ($arg ne "stats" && $arg !~ /^\s*(info|debug|blame|whodunnit)\s*(.+)\s*$/)) {
+		return reply("This command is intended for showing information on factoids. Please use 'factoid info X', 'factoid blame X', or 'factoid stats' -- where X is the factoid to be inspected.", $network, $sender, $channel);
+	}
+
+	if ($arg eq "stats") {
+		return reply("I know " . countFactoids() . " factoids.", $network, $sender, $channel);
+	} elsif ($1 eq "info" || $1 eq "debug") {
+		my $value = getFactoid($2, undef, undef, "value");
+		if (!defined($value)) {
+			reply("Sorry chap, '$2' is not a factoid. Yet.", $network, $sender, $channel);
+		} else {
+			my $response = "'$2' is a valid factoid. ";
+			if (defined($value->{reply})) {
+				$response .= "I reply to it with '" . $value->{value} . "'.";
+			} elsif (defined($value->{forward})) {
+				$response .= "I forward it to the factoid '" . $value->{value} . "'.";
+			} else {
+				$response .= "Its value is '" . $value->{value} . "'.";
+			}
+			return reply($response, $network, $sender, $channel);
+		}
+	} elsif ($1 eq "blame" || $1 eq "whodunnit") {
+		return reply(blameFactoid($2), $network, $sender, $channel);
+	}
 });
 
 # Who dunnit?
