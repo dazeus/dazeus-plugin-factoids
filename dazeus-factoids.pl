@@ -87,7 +87,19 @@ sub parseLearnCommand {
 				$response = "Alright, learned " . $factoid . ".";
 			}
 		} elsif ($result == 1) {
-			$response = "I already know " . $factoid . "; it is '" . getFactoid($factoid, $sender, $channel, "short") . "'!";
+			$response = "I already know " . $factoid . "; it is ";
+
+			# It is known.
+			my $raw_factoid = getFactoid($factoid, undef, undef, "value");
+			if (defined($raw_factoid->{forward})) {
+				$response .= "forwarded to ";
+			}
+			elsif (defined($raw_factoid->{reply})) {
+				$response .= "replied to with ";
+			}
+
+			# Yes, it is known.
+			$response .= "'" . $raw_factoid->{value} . "'!";
 		}
 	}
 
@@ -218,6 +230,10 @@ sub getFactoid {
 	my ($factoid, $sender, $channel, $mode, @forwards) = @_;
 	my $value = $dazeus->getProperty("factoid_" . lc($factoid));
 	$mode = "normal" if (!defined($mode));
+
+	if ($mode eq "value" || $mode eq "debug") {
+		return $value;
+	}
 
 	# Do we know this at all?
 	if (!defined($value)) {
