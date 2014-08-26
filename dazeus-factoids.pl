@@ -384,7 +384,7 @@ sub countFactoids {
 sub searchFactoids {
 	my ($keyphase) = @_;
 	my @keywords = split(/\s+/, $keyphase);
-	my @keys = $dazeus->getPropertyKeys();
+	my @keys = @{$dazeus->getPropertyKeys('factoid_')};
 	my %matches;
 	my $num_matches = 0;
 
