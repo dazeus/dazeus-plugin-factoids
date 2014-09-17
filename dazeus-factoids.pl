@@ -10,6 +10,8 @@ use DaZeus;
 use Data::Dumper;
 use v5.10;
 
+use constant DB_PREFIX => "perl.DazFactoids.factoid_";
+
 my ($socket) = @ARGV;
 
 if (!$socket) {
@@ -250,7 +252,7 @@ sub reply {
 
 sub getFactoid {
 	my ($factoid, $sender, $channel, $mode, @forwards) = @_;
-	my $value = $dazeus->getProperty("factoid_" . lc($factoid));
+	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid));
 	$mode = "normal" if (!defined($mode));
 
 	if ($mode eq "value" || $mode eq "debug") {
@@ -283,7 +285,7 @@ sub getFactoid {
 
 sub blameFactoid {
 	my ($factoid, $mess) = @_;
-	my $value = $dazeus->getProperty("factoid_" . lc($factoid));
+	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid));
 	my $who = $mess->{who};
 	my $channel = $mess->{channel};
 
@@ -304,7 +306,7 @@ sub teachFactoid {
 	my ($factoid, $value, $who, $channel, %opts) = @_;
 
 	# Check whether we already know this one.
-	if (defined($dazeus->getProperty("factoid_" . lc($factoid)))) {
+	if (defined($dazeus->getProperty(DB_PREFIX . lc($factoid)))) {
 		print "DazFactoids: $who tried to teach me '$factoid' in $channel, but I already know it.\n";
 		return 1;
 	}
@@ -313,13 +315,13 @@ sub teachFactoid {
 	print "-----\n" . Dumper(%opts) . "\n-----\n";
 
 	# Let's learn it already!
-	$dazeus->setProperty("factoid_" . lc($factoid), { value => $value, creator => $who, timestamp => time(), %opts });
+	$dazeus->setProperty(DB_PREFIX . lc($factoid), { value => $value, creator => $who, timestamp => time(), %opts });
 	return 0;
 }
 
 sub forgetFactoid {
 	my ($factoid, $who, $channel) = @_;
-	my $value = $dazeus->getProperty("factoid_" . lc($factoid));
+	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid));
 
 	# Is this a factoid known at all?
 	if (!defined($value)) {
@@ -337,13 +339,13 @@ sub forgetFactoid {
 	print "'" . $value->{value} . "'\n";
 
 	# Let's forget about it already!
-	$dazeus->unsetProperty("factoid_" . lc($factoid));
+	$dazeus->unsetProperty(DB_PREFIX . lc($factoid));
 	return 0;
 }
 
 sub blockFactoid {
 	my ($factoid, $who, $channel) = @_;
-	my $value = $dazeus->getProperty("factoid_" . lc($factoid));
+	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid));
 
 	# Already blocked?
 	if (defined($value->{block})) {
@@ -352,13 +354,13 @@ sub blockFactoid {
 
 	# Okay chaps, let's block this.
 	$value->{block} = 1;
-	$dazeus->setProperty("factoid_" . lc($factoid), $value);
+	$dazeus->setProperty(DB_PREFIX . lc($factoid), $value);
 	return 0;
 }
 
 sub unblockFactoid {
 	my ($factoid, $who, $channel) = @_;
-	my $value = $dazeus->getProperty("factoid_" . lc($factoid));
+	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid));
 
 	# Not blocked?
 	if (!defined($value->{block})) {
@@ -367,30 +369,25 @@ sub unblockFactoid {
 
 	# Let's unblock it, then!
 	delete $value->{block};
-	$dazeus->setProperty("factoid_" . lc($factoid), $value);
+	$dazeus->setProperty(DB_PREFIX . lc($factoid), $value);
 	return 0;
 }
 
 sub countFactoids {
-	my @keys = $dazeus->getPropertyKeys();
-	my $num_factoids = 0;
-
-	foreach (@keys) {
-		++$num_factoids if ($_ =~ /^factoid_(.+)$/);
-	}
-	return $num_factoids;
+	my @keys = $dazeus->getPropertyKeys(DB_PREFIX);
+	return scalar @keys;
 }
 
 sub searchFactoids {
 	my ($keyphase) = @_;
 	my @keywords = split(/\s+/, $keyphase);
-	my @keys = @{$dazeus->getPropertyKeys('factoid_')};
+	my @keys = @{$dazeus->getPropertyKeys(DB_PREFIX . join('.*', @keywords))};
 	my %matches;
 	my $num_matches = 0;
 
 	# Alright, let's search!
 	foreach my $factoid (@keys) {
-		next if (!($factoid =~ /^factoid_(.+)$/));
+		next if (!($factoid =~ /^@{[DB_PREFIX]}(.+)$/));
 		$factoid = $1;
 
 		my $relevance = 0;
