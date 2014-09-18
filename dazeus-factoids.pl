@@ -151,7 +151,7 @@ $dazeus->subscribe_command("append" => sub {
 	}
 
 	if (defined($factoid->{forward})) {
-		return reply("I forward " . $key . " to " . $factoid->{forward} . ". To avoid unintended consequences, please append to that factoid instead.", $network, $sender, $channel);
+		return reply("I forward " . $key . " to " . $factoid->{value} . ". To avoid unintended consequences, please append to that factoid instead.", $network, $sender, $channel);
 	}
 
 	my $result = forgetFactoid($key, $sender, $channel);
@@ -195,7 +195,7 @@ $dazeus->subscribe_command("prepend" => sub {
 	}
 
 	if (defined($factoid->{forward})) {
-		return reply("I forward " . $key . " to " . $factoid->{forward} . ". To avoid unintended consequences, please prepand to that factoid instead.", $network, $sender, $channel);
+		return reply("I forward " . $key . " to " . $factoid->{value} . ". To avoid unintended consequences, please prepand to that factoid instead.", $network, $sender, $channel);
 	}
 
 	my $result = forgetFactoid($2, $sender, $channel);
