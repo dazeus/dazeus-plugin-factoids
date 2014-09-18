@@ -198,7 +198,7 @@ $dazeus->subscribe_command("prepend" => sub {
 		return reply("I forward " . $key . " to " . $factoid->{value} . ". To avoid unintended consequences, please prepand to that factoid instead.", $network, $sender, $channel);
 	}
 
-	my $result = forgetFactoid($2, $network, $sender, $channel);
+	my $result = forgetFactoid($key, $network, $sender, $channel);
 	if ($result == 2) {
 		return reply("Factoid " . $key . " is currently blocked -- I cannot prepend anything to it.", $network, $sender, $channel);
 	} else {
@@ -313,7 +313,7 @@ $dazeus->subscribe_command("search" => sub {
 	} elsif (!checkKeywords($arg)) {
 		$response = "No valid keywords were provided. Keywords must be at least three characters long; shorter ones will be ignored.";
 	} else {
-		my ($num_matches, @top5) = searchFactoids($arg, $network, $sender, $channel);
+		my ($num_matches, @top5) = searchFactoids($network, $arg);
 		if ($num_matches == 1) {
 			$response = "I found one match: '" . $top5[0] . "': " . getFactoid($top5[0], $network, $sender, $channel, "short");
 		} elsif ($num_matches > 0) {
@@ -393,7 +393,7 @@ sub blameFactoid {
 }
 
 sub teachFactoid {
-	my ($factoid, $value, $who, $channel, %opts) = @_;
+	my ($factoid, $value, $network, $who, $channel, %opts) = @_;
 
 	# Check whether we already know this one.
 	if (defined($dazeus->getProperty(DB_PREFIX . lc($factoid), $network))) {
@@ -413,7 +413,7 @@ sub forgetFactoid {
 	my ($factoid, $network, $sender, $channel) = @_;
 	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid), $network);
 
-	# Is this a factoid known at all?
+	# Is this factoid known at all?
 	if (!defined($value)) {
 		print "DazFactoids: $sender tried to make me forget '$factoid' in $channel, but I don't know that factoid.\n";
 		return 1;
@@ -473,7 +473,7 @@ sub countFactoids {
 }
 
 sub searchFactoids {
-	my ($keyphase) = @_;
+	my ($network, $keyphase) = @_;
 	my @keywords = split(/\s+/, $keyphase);
 	my @keys = @{$dazeus->getPropertyKeys(DB_PREFIX . join('.*', @keywords), $network)};
 	my %matches;
