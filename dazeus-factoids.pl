@@ -37,7 +37,7 @@ $dazeus->subscribe("PRIVMSG" => sub {
 		return;
 	}
 
-	my $factoid = getFactoid($1, $sender, $channel);
+	my $factoid = getFactoid($1, $network, $sender, $channel);
 	reply($factoid, $network, $sender, $channel);
 });
 
@@ -79,7 +79,7 @@ sub parseLearnCommand {
 		}
 
 		# Teach it!
-		my $result = teachFactoid($factoid, $value, $sender, $channel, %opts);
+		my $result = teachFactoid($factoid, $value, $network, $sender, $channel, %opts);
 		if ($result == 0) {
 			if ($command eq "reply") {
 				$response = "Alright, I'll reply to " . $factoid . ".";
@@ -92,7 +92,7 @@ sub parseLearnCommand {
 			$response = "I already know " . $factoid . "; it is ";
 
 			# It is known.
-			my $raw_factoid = getFactoid($factoid, undef, undef, "value");
+			my $raw_factoid = getFactoid($factoid, $network, $sender, $channel, "value");
 			if (defined($raw_factoid->{forward})) {
 				$response .= "forwarded to ";
 			}
@@ -116,7 +116,7 @@ $dazeus->subscribe_command("forget" => sub {
 	if (!defined($arg) || $arg eq "") {
 		$response = "You'll have to give me something to work with, chap.";
 	} else {
-		my $result = forgetFactoid($arg, $sender, $channel);
+		my $result = forgetFactoid($arg, $network, $sender, $channel);
 		if ($result == 0) {
 			$response = "Alright, forgot all about " . $arg . ".";
 		} elsif ($result == 1) {
@@ -145,7 +145,7 @@ $dazeus->subscribe_command("append" => sub {
 	my $amendment = $1;
 	my $key = $2;
 
-	my $factoid = getFactoid($key, $sender, $channel, "value");
+	my $factoid = getFactoid($key, $network, $sender, $channel, "value");
 	if (!defined($factoid)) {
 		return reply("I don't know anything about " . $2 . " yet. Please use }learn or }reply instead.", $network, $sender, $channel);
 	}
@@ -154,7 +154,7 @@ $dazeus->subscribe_command("append" => sub {
 		return reply("I forward " . $key . " to " . $factoid->{value} . ". To avoid unintended consequences, please append to that factoid instead.", $network, $sender, $channel);
 	}
 
-	my $result = forgetFactoid($key, $sender, $channel);
+	my $result = forgetFactoid($key, $network, $sender, $channel);
 	if ($result == 2) {
 		return reply("Factoid " . $key . " is currently blocked -- I cannot append anything to it.", $network, $sender, $channel);
 	} else {
@@ -164,7 +164,7 @@ $dazeus->subscribe_command("append" => sub {
 		}
 
 		my $new_value = $factoid->{value} . ' ' . $amendment, $sender;
-		my $reply = teachFactoid($key, $new_value, $channel, %opts);
+		my $reply = teachFactoid($key, $new_value, $network, $sender, $channel, %opts);
 		if ($reply == 0) {
 			return reply("Alright, " . $key . "'s value is now '" . $new_value . "'.", $network, $sender, $channel);
 		} else {
@@ -189,7 +189,7 @@ $dazeus->subscribe_command("prepend" => sub {
 	my $amendment = $1;
 	my $key = $2;
 
-	my $factoid = getFactoid($key, $sender, $channel, "value");
+	my $factoid = getFactoid($key, $network, $sender, $channel, "value");
 	if (!defined($factoid)) {
 		return reply("I don't know anything about " . $key . " yet. Please use }learn or }reply instead.", $network, $sender, $channel);
 	}
@@ -198,7 +198,7 @@ $dazeus->subscribe_command("prepend" => sub {
 		return reply("I forward " . $key . " to " . $factoid->{value} . ". To avoid unintended consequences, please prepand to that factoid instead.", $network, $sender, $channel);
 	}
 
-	my $result = forgetFactoid($2, $sender, $channel);
+	my $result = forgetFactoid($2, $network, $sender, $channel);
 	if ($result == 2) {
 		return reply("Factoid " . $key . " is currently blocked -- I cannot prepend anything to it.", $network, $sender, $channel);
 	} else {
@@ -208,7 +208,7 @@ $dazeus->subscribe_command("prepend" => sub {
 		}
 
 		my $new_value = $amendment . ' ' . $factoid->{value}, $sender;
-		my $reply = teachFactoid($key, $new_value, $channel, %opts);
+		my $reply = teachFactoid($key, $new_value, $network, $sender, $channel, %opts);
 		if ($reply == 0) {
 			return reply("Alright, " . $key . "'s value is now '" . $new_value . "'.", $network, $sender, $channel);
 		} else {
@@ -225,7 +225,7 @@ $dazeus->subscribe_command("block" => sub {
 	if (!defined($arg) || $arg eq "") {
 		$response = "You'll have to give me something to work with, chap.";
 	} else {
-		my $result = blockFactoid($arg, $sender, $channel);
+		my $result = blockFactoid($arg, $network, $sender, $channel);
 		if ($result == 0) {
 			$response = "Okay, blocked " . $arg . ".";
 		} elsif ($result == 1) {
@@ -246,7 +246,7 @@ $dazeus->subscribe_command("unblock" => sub {
 	if (!defined($arg) || $arg eq "") {
 		$response = "You'll have to give me something to work with, chap.";
 	} else {
-		my $result = unblockFactoid($arg, $sender, $channel);
+		my $result = unblockFactoid($arg, $network, $sender, $channel);
 		if ($result == 0) {
 			$response = "Okay, unblocked " . $arg . ".";
 		} elsif ($result == 1) {
@@ -270,7 +270,7 @@ $dazeus->subscribe_command("factoid" => sub {
 	if ($arg eq "stats") {
 		return reply("I know " . countFactoids() . " factoids.", $network, $sender, $channel);
 	} elsif ($1 eq "info" || $1 eq "debug") {
-		my $value = getFactoid($2, undef, undef, "value");
+		my $value = getFactoid($2, $network, $sender, $channel, "value");
 		if (!defined($value)) {
 			reply("Sorry chap, '$2' is not a factoid. Yet.", $network, $sender, $channel);
 		} else {
@@ -285,7 +285,7 @@ $dazeus->subscribe_command("factoid" => sub {
 			return reply($response, $network, $sender, $channel);
 		}
 	} elsif ($1 eq "blame" || $1 eq "whodunnit") {
-		return reply(blameFactoid($2), $network, $sender, $channel);
+		return reply(blameFactoid($2, $network, $sender, $channel), $network, $sender, $channel);
 	}
 });
 
@@ -297,7 +297,7 @@ $dazeus->subscribe_command("blame" => sub {
 	if (!defined($arg) || $arg eq "") {
 		$response = "You'll have to give me something to work with, chap.";
 	} else {
-		$response = blameFactoid($arg);
+		$response = blameFactoid($arg, $network, $sender, $channel);
 	}
 
 	reply($response, $network, $sender, $channel);
@@ -313,9 +313,9 @@ $dazeus->subscribe_command("search" => sub {
 	} elsif (!checkKeywords($arg)) {
 		$response = "No valid keywords were provided. Keywords must be at least three characters long; shorter ones will be ignored.";
 	} else {
-		my ($num_matches, @top5) = searchFactoids($arg);
+		my ($num_matches, @top5) = searchFactoids($arg, $network, $sender, $channel);
 		if ($num_matches == 1) {
-			$response = "I found one match: '" . $top5[0] . "': " . getFactoid($top5[0], $sender, $channel, "short");
+			$response = "I found one match: '" . $top5[0] . "': " . getFactoid($top5[0], $network, $sender, $channel, "short");
 		} elsif ($num_matches > 0) {
 			$response = "I found " . $num_matches . " factoids. Top " . (scalar @top5) . ": '" . join("', '", @top5) . "'.";
 		} else {
@@ -343,8 +343,8 @@ sub reply {
 }
 
 sub getFactoid {
-	my ($factoid, $sender, $channel, $mode, @forwards) = @_;
-	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid));
+	my ($factoid, $network, $sender, $channel, $mode, @forwards) = @_;
+	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid), $network);
 	$mode = "normal" if (!defined($mode));
 
 	if ($mode eq "value" || $mode eq "debug") {
@@ -367,7 +367,7 @@ sub getFactoid {
 		if ($fact ~~ @forwards) {
 			return "Error: infinite forwarding detected. Trace: " . join(' -> ', @forwards) . ' -> ' . $fact;
 		} else {
-			return getFactoid($fact, $sender, $channel, $mode, @forwards);
+			return getFactoid($fact, $network, $sender, $channel, $mode, @forwards);
 		}
 	}
 
@@ -376,10 +376,8 @@ sub getFactoid {
 }
 
 sub blameFactoid {
-	my ($factoid, $mess) = @_;
-	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid));
-	my $who = $mess->{who};
-	my $channel = $mess->{channel};
+	my ($factoid, $network, $sender, $channel) = @_;
+	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid), $network);
 
 	# Do we know this at all?
 	if (!defined($value)) {
@@ -398,7 +396,7 @@ sub teachFactoid {
 	my ($factoid, $value, $who, $channel, %opts) = @_;
 
 	# Check whether we already know this one.
-	if (defined($dazeus->getProperty(DB_PREFIX . lc($factoid)))) {
+	if (defined($dazeus->getProperty(DB_PREFIX . lc($factoid), $network))) {
 		print "DazFactoids: $who tried to teach me '$factoid' in $channel, but I already know it.\n";
 		return 1;
 	}
@@ -407,37 +405,37 @@ sub teachFactoid {
 	print "-----\n" . Dumper(%opts) . "\n-----\n";
 
 	# Let's learn it already!
-	$dazeus->setProperty(DB_PREFIX . lc($factoid), { value => $value, creator => $who, timestamp => time(), %opts });
+	$dazeus->setProperty(DB_PREFIX . lc($factoid), { value => $value, creator => $who, timestamp => time(), %opts }, $network);
 	return 0;
 }
 
 sub forgetFactoid {
-	my ($factoid, $who, $channel) = @_;
-	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid));
+	my ($factoid, $network, $sender, $channel) = @_;
+	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid), $network);
 
 	# Is this a factoid known at all?
 	if (!defined($value)) {
-		print "DazFactoids: $who tried to make me forget '$factoid' in $channel, but I don't know that factoid.\n";
+		print "DazFactoids: $sender tried to make me forget '$factoid' in $channel, but I don't know that factoid.\n";
 		return 1;
 	}
 
 	# Blocked, perhaps?
 	if (defined($value->{block})) {
-		print "DazFactoids: $who tried to make me forget '$factoid' in $channel, but it is blocked.\n";
+		print "DazFactoids: $sender tried to make me forget '$factoid' in $channel, but it is blocked.\n";
 		return 2;
 	}
 
-	print "DazFactoids: $who made me forget '$factoid' in $channel - factoid had this value:\n";
+	print "DazFactoids: $sender made me forget '$factoid' in $channel - factoid had this value:\n";
 	print "'" . $value->{value} . "'\n";
 
 	# Let's forget about it already!
-	$dazeus->unsetProperty(DB_PREFIX . lc($factoid));
+	$dazeus->unsetProperty(DB_PREFIX . lc($factoid), $network);
 	return 0;
 }
 
 sub blockFactoid {
-	my ($factoid, $who, $channel) = @_;
-	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid));
+	my ($factoid, $network, $sender, $channel) = @_;
+	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid), $network);
 
 	if (!defined($value)) {
 		return 2;
@@ -450,13 +448,13 @@ sub blockFactoid {
 
 	# Okay chaps, let's block this.
 	$value->{block} = 1;
-	$dazeus->setProperty(DB_PREFIX . lc($factoid), $value);
+	$dazeus->setProperty(DB_PREFIX . lc($factoid), $value, $network);
 	return 0;
 }
 
 sub unblockFactoid {
-	my ($factoid, $who, $channel) = @_;
-	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid));
+	my ($factoid, $network, $sender, $channel) = @_;
+	my $value = $dazeus->getProperty(DB_PREFIX . lc($factoid), $network);
 
 	# Not blocked?
 	if (!defined($value->{block})) {
@@ -465,7 +463,7 @@ sub unblockFactoid {
 
 	# Let's unblock it, then!
 	delete $value->{block};
-	$dazeus->setProperty(DB_PREFIX . lc($factoid), $value);
+	$dazeus->setProperty(DB_PREFIX . lc($factoid), $value, $network);
 	return 0;
 }
 
@@ -477,7 +475,7 @@ sub countFactoids {
 sub searchFactoids {
 	my ($keyphase) = @_;
 	my @keywords = split(/\s+/, $keyphase);
-	my @keys = @{$dazeus->getPropertyKeys(DB_PREFIX . join('.*', @keywords))};
+	my @keys = @{$dazeus->getPropertyKeys(DB_PREFIX . join('.*', @keywords), $network)};
 	my %matches;
 	my $num_matches = 0;
 
