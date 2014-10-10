@@ -167,7 +167,7 @@ $dazeus->subscribe_command("append" => sub {
 			$amendment = ' ' . $amendment;
 		}
 
-		my $new_value = $factoid->{value} . $amendment, $sender;
+		my $new_value = $factoid->{value} . $amendment;
 		my $reply = teachFactoid($key, $new_value, $network, $sender, $channel, %opts);
 		if ($reply == 0) {
 			return reply("Alright, " . $key . "'s value is now '" . $new_value . "'.", $network, $sender, $channel);
@@ -215,7 +215,7 @@ $dazeus->subscribe_command("prepend" => sub {
 			$amendment = $amendment . ' ';
 		}
 
-		my $new_value = $amendment . $factoid->{value}, $sender;
+		my $new_value = $amendment . $factoid->{value};
 		my $reply = teachFactoid($key, $new_value, $network, $sender, $channel, %opts);
 		if ($reply == 0) {
 			return reply("Alright, " . $key . "'s value is now '" . $new_value . "'.", $network, $sender, $channel);
@@ -276,7 +276,7 @@ $dazeus->subscribe_command("factoid" => sub {
 	}
 
 	if ($arg eq "stats") {
-		return reply("I know " . countFactoids() . " factoids.", $network, $sender, $channel);
+		return reply("I know " . countFactoids($network) . " factoids.", $network, $sender, $channel);
 	} elsif ($1 eq "info" || $1 eq "debug") {
 		my $value = getFactoid($2, $network, $sender, $channel, "value");
 		if (!defined($value)) {
@@ -476,14 +476,15 @@ sub unblockFactoid {
 }
 
 sub countFactoids {
-	my @keys = $dazeus->getPropertyKeys(DB_PREFIX);
+	my ($network) = @_;
+	my @keys = $dazeus->getPropertyKeys(DB_PREFIX, $network);
 	return scalar @keys;
 }
 
 sub searchFactoids {
 	my ($network, $keyphase) = @_;
 	my @keywords = split(/\s+/, $keyphase);
-	my @keys = @{$dazeus->getPropertyKeys(DB_PREFIX . join('.*', @keywords), $network)};
+	my @keys = @{$dazeus->getPropertyKeys(DB_PREFIX, $network)};
 	my %matches;
 	my $num_matches = 0;
 
