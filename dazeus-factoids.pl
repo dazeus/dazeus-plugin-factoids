@@ -138,7 +138,7 @@ $dazeus->subscribe_command("append" => sub {
 		return reply("You'll have to give me something to work with, chap.", $network, $sender, $channel);
 	}
 
-	if (!($arg =~ /^['"](.+?)['"] to (.+)$/)) {
+	if (!($arg =~ /^['"](.+?)['"] to (.+)$/) and !($arg =~ /^([^\s]+) to (.+)/)) {
 		return reply("To append something, please use '}append \"[your string]\" to [existing factoid]'.", $network, $sender, $channel);
 	}
 
@@ -182,7 +182,7 @@ $dazeus->subscribe_command("prepend" => sub {
 		return reply("You'll have to give me something to work with, chap.", $network, $sender, $channel);
 	}
 
-	if (!($arg =~ /^['"](.+?)['"] to (.+)$/)) {
+	if (!($arg =~ /^['"](.+?)['"] to (.+)$/) and !($arg =~ /^([^\s]+) to (.+)/)) {
 		return reply("To prepend something, please use '}prepend \"[your string]\" to [existing factoid]'.", $network, $sender, $channel);
 	}
 
