@@ -163,7 +163,11 @@ $dazeus->subscribe_command("append" => sub {
 			$opts{reply} = 1;
 		}
 
-		my $new_value = $factoid->{value} . ' ' . $amendment, $sender;
+		if ($amendment =~ /^[\s\w]/) {
+			$amendment = ' ' . $amendment;
+		}
+
+		my $new_value = $factoid->{value} . $amendment, $sender;
 		my $reply = teachFactoid($key, $new_value, $network, $sender, $channel, %opts);
 		if ($reply == 0) {
 			return reply("Alright, " . $key . "'s value is now '" . $new_value . "'.", $network, $sender, $channel);
@@ -207,7 +211,11 @@ $dazeus->subscribe_command("prepend" => sub {
 			$opts{reply} = 1;
 		}
 
-		my $new_value = $amendment . ' ' . $factoid->{value}, $sender;
+		if ($amendment =~ /[^\s]$/) {
+			$amendment = $amendment . ' ';
+		}
+
+		my $new_value = $amendment . $factoid->{value}, $sender;
 		my $reply = teachFactoid($key, $new_value, $network, $sender, $channel, %opts);
 		if ($reply == 0) {
 			return reply("Alright, " . $key . "'s value is now '" . $new_value . "'.", $network, $sender, $channel);
