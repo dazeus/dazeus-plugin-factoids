@@ -4,7 +4,9 @@
 # Original module (C) 2007  Sjors Gielen <sjorsgielen@gmail.com>
 
 package Factoids;
-our @EXPORT_OK = qw(reply getFactoid blameFactoid teachFactoid forgetFactoid blockFactoid unblockFactoid countFactoids searchFactoids checkKeywords);
+require Exporter;
+our @ISA = ('Exporter');
+our @EXPORT = qw(reply getFactoid blameFactoid teachFactoid forgetFactoid blockFactoid unblockFactoid countFactoids searchFactoids checkKeywords);
 
 sub reply {
 	my ($response, $network, $sender, $channel) = @_;

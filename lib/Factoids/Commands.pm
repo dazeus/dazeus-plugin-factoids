@@ -4,8 +4,13 @@
 # Original module (C) 2007  Sjors Gielen <sjorsgielen@gmail.com>
 
 package Factoids;
-our @EXPORT_OK = qw(registerCommands);
+require Exporter;
+our @ISA = ('Exporter');
+our @EXPORT = ('registerCommands');
 
+use Factoids::Model;
+
+# Register known commands.
 sub registerCommands {
 	my $dazeus = pop @_;
 	$dazeus->subscribe("PRIVMSG" => \&commandLookUp);
