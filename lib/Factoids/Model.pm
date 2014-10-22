@@ -3,7 +3,7 @@
 # Blame functionality (C) 2013  Thom "TheGuyOfDoom" Wiggers <ret@rded.nl>
 # Original module (C) 2007  Sjors Gielen <sjorsgielen@gmail.com>
 
-package Factoids;
+package Factoids::Model;
 require Exporter;
 our @ISA = ('Exporter');
 our @EXPORT = qw(reply getFactoid blameFactoid teachFactoid forgetFactoid blockFactoid unblockFactoid countFactoids searchFactoids checkKeywords);

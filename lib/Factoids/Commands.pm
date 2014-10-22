@@ -3,7 +3,7 @@
 # Blame functionality (C) 2013  Thom "TheGuyOfDoom" Wiggers <ret@rded.nl>
 # Original module (C) 2007  Sjors Gielen <sjorsgielen@gmail.com>
 
-package Factoids;
+package Factoids::Commands;
 require Exporter;
 our @ISA = ('Exporter');
 our @EXPORT = ('registerCommands');
