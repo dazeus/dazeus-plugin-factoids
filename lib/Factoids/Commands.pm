@@ -4,16 +4,29 @@
 # Original module (C) 2007  Sjors Gielen <sjorsgielen@gmail.com>
 
 package Factoids::Commands;
+
+use v5.10;
+use strict;
+use warnings;
+
 require Exporter;
 our @ISA = ('Exporter');
 our @EXPORT = ('registerCommands');
 
-use Factoids::Model;
+use Factoids::ProviderModel;
+my $factoids = undef;
 
 # Register known commands.
 sub registerCommands {
 	my $dazeus = pop @_;
+
+	# We'll be needing an instance of the factoid provider.
+	$factoids = new Factoids::ProviderModel($dazeus);
+
+	# Handle all messages for factoid lookups (messages starting with ']').
 	$dazeus->subscribe("PRIVMSG" => \&commandLookUp);
+
+	# Handle these commands explicitly.
 	$dazeus->subscribe_command("learn", \&commandLearn);
 	$dazeus->subscribe_command("reply", \&commandLearn);
 	$dazeus->subscribe_command("forward", \&commandLearn);
@@ -37,8 +50,8 @@ sub commandLookUp {
 		return;
 	}
 
-	my $factoid = getFactoid($1, $network, $sender, $channel);
-	reply($factoid, $network, $sender, $channel);
+	my $factoid = $factoids->get($1, $network, $sender, $channel);
+	$self->reply($factoid, $network, $sender, $channel);
 };
 
 # Handles teaching factoids.
@@ -74,7 +87,7 @@ sub commandLearn {
 		}
 
 		# Teach it!
-		my $result = teachFactoid($factoid, $value, $network, $sender, $channel, %opts);
+		my $result = $factoids->teach($factoid, $value, $network, $sender, $channel, %opts);
 		if ($result == 0) {
 			if ($command eq "reply") {
 				$response = "Alright, I'll reply to " . $factoid . ".";
@@ -87,7 +100,7 @@ sub commandLearn {
 			$response = "I already know " . $factoid . "; it is ";
 
 			# It is known.
-			my $raw_factoid = getFactoid($factoid, $network, $sender, $channel, "value");
+			my $raw_factoid = $factoids->get($factoid, $network, $sender, $channel, "value");
 			if (defined($raw_factoid->{forward})) {
 				$response .= "forwarded to ";
 			}
@@ -100,7 +113,7 @@ sub commandLearn {
 		}
 	}
 
-	reply($response, $network, $sender, $channel);
+	$self->reply($response, $network, $sender, $channel);
 }
 
 # Forgetting factoids
@@ -111,7 +124,7 @@ sub commandForget {
 	if (!defined($arg) || $arg eq "") {
 		$response = "You'll have to give me something to work with, chap.";
 	} else {
-		my $result = forgetFactoid($arg, $network, $sender, $channel);
+		my $result = $factoids->forget($arg, $network, $sender, $channel);
 		if ($result == 0) {
 			$response = "Alright, forgot all about " . $arg . ".";
 		} elsif ($result == 1) {
@@ -121,7 +134,7 @@ sub commandForget {
 		}
 	}
 
-	reply($response, $network, $sender, $channel);
+	$self->reply($response, $network, $sender, $channel);
 };
 
 # Appending a string to an existing factoid.
@@ -130,28 +143,28 @@ sub commandAppend {
 	my $response;
 
 	if (!defined($arg) || $arg eq "") {
-		return reply("You'll have to give me something to work with, chap.", $network, $sender, $channel);
+		return $self->reply("You'll have to give me something to work with, chap.", $network, $sender, $channel);
 	}
 
 	if (!($arg =~ /^['"](.+?)['"] to (.+)$/) and !($arg =~ /^([^\s]+) to (.+)/)) {
-		return reply("To append something, please use '}append \"[your string]\" to [existing factoid]'.", $network, $sender, $channel);
+		return $self->reply("To append something, please use '}append \"[your string]\" to [existing factoid]'.", $network, $sender, $channel);
 	}
 
 	my $amendment = $1;
 	my $key = $2;
 
-	my $factoid = getFactoid($key, $network, $sender, $channel, "value");
+	my $factoid = $factoids->get($key, $network, $sender, $channel, "value");
 	if (!defined($factoid)) {
-		return reply("I don't know anything about " . $2 . " yet. Please use }learn or }reply instead.", $network, $sender, $channel);
+		return $self->reply("I don't know anything about " . $2 . " yet. Please use }learn or }reply instead.", $network, $sender, $channel);
 	}
 
 	if (defined($factoid->{forward})) {
-		return reply("I forward " . $key . " to " . $factoid->{value} . ". To avoid unintended consequences, please append to that factoid instead.", $network, $sender, $channel);
+		return $self->reply("I forward " . $key . " to " . $factoid->{value} . ". To avoid unintended consequences, please append to that factoid instead.", $network, $sender, $channel);
 	}
 
-	my $result = forgetFactoid($key, $network, $sender, $channel);
+	my $result = $factoids->forget($key, $network, $sender, $channel);
 	if ($result == 2) {
-		return reply("Factoid " . $key . " is currently blocked -- I cannot append anything to it.", $network, $sender, $channel);
+		return $self->reply("Factoid " . $key . " is currently blocked -- I cannot append anything to it.", $network, $sender, $channel);
 	} else {
 		my %opts;
 		if (defined($factoid->{reply})) {
@@ -163,11 +176,11 @@ sub commandAppend {
 		}
 
 		my $new_value = $factoid->{value} . $amendment;
-		my $reply = teachFactoid($key, $new_value, $network, $sender, $channel, %opts);
+		my $reply = $factoids->teach($key, $new_value, $network, $sender, $channel, %opts);
 		if ($reply == 0) {
-			return reply("Alright, " . $key . "'s value is now '" . $new_value . "'.", $network, $sender, $channel);
+			return $self->reply("Alright, " . $key . "'s value is now '" . $new_value . "'.", $network, $sender, $channel);
 		} else {
-			return reply("Sorry chap, something unexpected went wrong!", $network, $sender, $channel);
+			return $self->reply("Sorry chap, something unexpected went wrong!", $network, $sender, $channel);
 		}
 	}
 };
@@ -178,28 +191,28 @@ sub commandPrepend {
 	my $response;
 
 	if (!defined($arg) || $arg eq "") {
-		return reply("You'll have to give me something to work with, chap.", $network, $sender, $channel);
+		return $self->reply("You'll have to give me something to work with, chap.", $network, $sender, $channel);
 	}
 
 	if (!($arg =~ /^['"](.+?)['"] to (.+)$/) and !($arg =~ /^([^\s]+) to (.+)/)) {
-		return reply("To prepend something, please use '}prepend \"[your string]\" to [existing factoid]'.", $network, $sender, $channel);
+		return $self->reply("To prepend something, please use '}prepend \"[your string]\" to [existing factoid]'.", $network, $sender, $channel);
 	}
 
 	my $amendment = $1;
 	my $key = $2;
 
-	my $factoid = getFactoid($key, $network, $sender, $channel, "value");
+	my $factoid = $factoids->get($key, $network, $sender, $channel, "value");
 	if (!defined($factoid)) {
-		return reply("I don't know anything about " . $key . " yet. Please use }learn or }reply instead.", $network, $sender, $channel);
+		return $self->reply("I don't know anything about " . $key . " yet. Please use }learn or }reply instead.", $network, $sender, $channel);
 	}
 
 	if (defined($factoid->{forward})) {
-		return reply("I forward " . $key . " to " . $factoid->{value} . ". To avoid unintended consequences, please prepand to that factoid instead.", $network, $sender, $channel);
+		return $self->reply("I forward " . $key . " to " . $factoid->{value} . ". To avoid unintended consequences, please prepand to that factoid instead.", $network, $sender, $channel);
 	}
 
-	my $result = forgetFactoid($key, $network, $sender, $channel);
+	my $result = $factoids->forget($key, $network, $sender, $channel);
 	if ($result == 2) {
-		return reply("Factoid " . $key . " is currently blocked -- I cannot prepend anything to it.", $network, $sender, $channel);
+		return $self->reply("Factoid " . $key . " is currently blocked -- I cannot prepend anything to it.", $network, $sender, $channel);
 	} else {
 		my %opts;
 		if (defined($factoid->{reply})) {
@@ -211,11 +224,11 @@ sub commandPrepend {
 		}
 
 		my $new_value = $amendment . $factoid->{value};
-		my $reply = teachFactoid($key, $new_value, $network, $sender, $channel, %opts);
+		my $reply = $factoids->teach($key, $new_value, $network, $sender, $channel, %opts);
 		if ($reply == 0) {
-			return reply("Alright, " . $key . "'s value is now '" . $new_value . "'.", $network, $sender, $channel);
+			return $self->reply("Alright, " . $key . "'s value is now '" . $new_value . "'.", $network, $sender, $channel);
 		} else {
-			return reply("Sorry chap, something unexpected went wrong!", $network, $sender, $channel);
+			return $self->reply("Sorry chap, something unexpected went wrong!", $network, $sender, $channel);
 		}
 	}
 };
@@ -228,7 +241,7 @@ sub commandBlock {
 	if (!defined($arg) || $arg eq "") {
 		$response = "You'll have to give me something to work with, chap.";
 	} else {
-		my $result = blockFactoid($arg, $network, $sender, $channel);
+		my $result = $factoids->block($arg, $network, $sender, $channel);
 		if ($result == 0) {
 			$response = "Okay, blocked " . $arg . ".";
 		} elsif ($result == 1) {
@@ -238,7 +251,7 @@ sub commandBlock {
 		}
 	}
 
-	reply($response, $network, $sender, $channel);
+	$self->reply($response, $network, $sender, $channel);
 };
 
 # Unblocking a factoid.
@@ -249,7 +262,7 @@ sub commandUnblock {
 	if (!defined($arg) || $arg eq "") {
 		$response = "You'll have to give me something to work with, chap.";
 	} else {
-		my $result = unblockFactoid($arg, $network, $sender, $channel);
+		my $result = $factoids->unblock($arg, $network, $sender, $channel);
 		if ($result == 0) {
 			$response = "Okay, unblocked " . $arg . ".";
 		} elsif ($result == 1) {
@@ -259,7 +272,7 @@ sub commandUnblock {
 		}
 	}
 
-	reply($response, $network, $sender, $channel);
+	$self->reply($response, $network, $sender, $channel);
 };
 
 # Getting information on a factoid.
@@ -267,15 +280,15 @@ sub commandFactoid {
 	my ($self, $network, $sender, $channel, $command, $arg) = @_;
 
 	if (!defined($arg) || ($arg ne "stats" && $arg !~ /^\s*(info|debug|blame|whodunnit)\s*(.+)\s*$/)) {
-		return reply("This command is intended for showing information on factoids. Please use 'factoid info X', 'factoid blame X', or 'factoid stats' -- where X is the factoid to be inspected.", $network, $sender, $channel);
+		return $self->reply("This command is intended for showing information on factoids. Please use 'factoid info X', 'factoid blame X', or 'factoid stats' -- where X is the factoid to be inspected.", $network, $sender, $channel);
 	}
 
 	if ($arg eq "stats") {
-		return reply("I know " . countFactoids($network) . " factoids.", $network, $sender, $channel);
+		return $self->reply("I know " . $factoids->count($network) . " factoids.", $network, $sender, $channel);
 	} elsif ($1 eq "info" || $1 eq "debug") {
-		my $value = getFactoid($2, $network, $sender, $channel, "value");
+		my $value = $factoids->get($2, $network, $sender, $channel, "value");
 		if (!defined($value)) {
-			reply("Sorry chap, '$2' is not a factoid. Yet.", $network, $sender, $channel);
+			$self->reply("Sorry chap, '$2' is not a factoid. Yet.", $network, $sender, $channel);
 		} else {
 			my $response = "'$2' is a valid factoid. ";
 			if (defined($value->{reply})) {
@@ -285,10 +298,10 @@ sub commandFactoid {
 			} else {
 				$response .= "Its value is '" . $value->{value} . "'.";
 			}
-			return reply($response, $network, $sender, $channel);
+			return $self->reply($response, $network, $sender, $channel);
 		}
 	} elsif ($1 eq "blame" || $1 eq "whodunnit") {
-		return reply(blameFactoid($2, $network, $sender, $channel), $network, $sender, $channel);
+		return $self->reply($factoids->blame($2, $network, $sender, $channel), $network, $sender, $channel);
 	}
 };
 
@@ -300,10 +313,10 @@ sub commandBlame {
 	if (!defined($arg) || $arg eq "") {
 		$response = "You'll have to give me something to work with, chap.";
 	} else {
-		$response = blameFactoid($arg, $network, $sender, $channel);
+		$response = $factoids->blame($arg, $network, $sender, $channel);
 	}
 
-	reply($response, $network, $sender, $channel);
+	$self->reply($response, $network, $sender, $channel);
 };
 
 # Search for factoids.
@@ -313,12 +326,12 @@ sub commandSearch {
 
 	if (!defined($arg) || $arg eq "") {
 		$response = "You'll have to give me something to work with, chap.";
-	} elsif (!checkKeywords($arg)) {
+	} elsif (!_checkKeywords($arg)) {
 		$response = "No valid keywords were provided. Keywords must be at least three characters long; shorter ones will be ignored.";
 	} else {
-		my ($num_matches, @top5) = searchFactoids($network, $arg);
+		my ($num_matches, @top5) = $factoids->search($network, $arg);
 		if ($num_matches == 1) {
-			$response = "I found one match: '" . $top5[0] . "': " . getFactoid($top5[0], $network, $sender, $channel, "short");
+			$response = "I found one match: '" . $top5[0] . "': " . $factoids->get($top5[0], $network, $sender, $channel, "short");
 		} elsif ($num_matches > 0) {
 			$response = "I found " . $num_matches . " factoids. Top " . (scalar @top5) . ": '" . join("', '", @top5) . "'.";
 		} else {
@@ -326,5 +339,15 @@ sub commandSearch {
 		}
 	}
 
-	reply($response, $network, $sender, $channel);
+	$self->reply($response, $network, $sender, $channel);
 };
+
+sub _checkKeywords {
+	my @keywords = split(/\s+/, shift);
+	foreach my $keyword (@keywords) {
+		return 1 if length $keyword >= 3;
+	}
+	return 0;
+}
+
+1;

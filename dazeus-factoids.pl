@@ -7,14 +7,11 @@
 use strict;
 use warnings;
 use lib './lib';
-use v5.10;
 
 use DaZeus;
 use Factoids::Commands;
-use constant DB_PREFIX => "perl.DazFactoids.factoid_";
 
-my ($socket) = @ARGV;
-
+my ($socket) = shift;
 if (!$socket) {
 	warn "Usage: $0 socket\n";
 	exit 1;
