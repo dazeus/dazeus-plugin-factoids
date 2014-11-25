@@ -46,7 +46,7 @@ sub commandLookUp {
 	my ($network, $sender, $channel, $msg) = @{$event->{params}};
 
 	# Not a factoid request? Ignore the message.
-	if ($msg !~ /^\](.+)$/) {
+	if ($msg !~ /^\](.+?)\s*$/) {
 		return;
 	}
 
