@@ -162,7 +162,7 @@ sub count {
 
 sub search {
 	my ($self, $network, $keyphase) = @_;
-	my @keywords = split(/\s+/, $keyphase);
+	my @keywords = split(/\s+/, lc($keyphase));
 	my @keys = @{$self->{_dazeus}->getPropertyKeys(DB_PREFIX, $network)};
 	my %matches;
 	my $num_matches = 0;
