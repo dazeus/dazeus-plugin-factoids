@@ -175,11 +175,11 @@ sub search {
 		my $relevance = 0;
 		foreach my $keyword (@keywords) {
 			next if (length($keyword) < 3);
-			$relevance++ if (index($factoid, $keyword) > -1);
+			$relevance += length($keyword) if (index($factoid, $keyword) > -1);
 		}
 
 		next if $relevance == 0;
-		$matches{$factoid} = $relevance;
+		$matches{$factoid} = $relevance / length($factoid);
 		$num_matches++;
 	}
 
